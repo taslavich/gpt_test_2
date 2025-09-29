@@ -3,7 +3,7 @@ set -e
 
 REGISTRY="localhost:5000/exchange"
 TAG="latest"
-SERVICES=("bid-engine" "orchestrator" "router" "spp-adapter")
+SERVICES=("bid-engine" "orchestrator" "router" "spp-adapter" "kafka-loader" "clickhouse-loader")
 REGISTRY_CONTAINER="rtb-registry"
 
 echo "=== Building Docker Images ==="
@@ -12,7 +12,7 @@ usage() {
     echo "Usage: $0 [all|list|image-name|clean|clean-all|registry-start|registry-stop|registry-status|registry-clean|push-local]"
     echo "  all           - Build all images (default)"
     echo "  list          - List available services"
-    echo "  image-name    - Build specific image (e.g., bid_engine)"
+    echo "  image-name    - Build specific image (e.g., bid-engine)"
     echo "  clean         - Remove all RTB images from local Docker and registry"
     echo "  clean-all     - Remove ALL unused Docker images, containers, registry + k3s cache"
     echo "  registry-start- Start local Docker registry"
@@ -149,7 +149,7 @@ EOF
 
 # Функция проверки registry
 check_registry() {
-    docker ps | grep -q $REGISTRY_CONTAINER
+    docker ps | grep -q "$REGISTRY_CONTAINER"
 }
 
 # Функция запуска registry
@@ -161,10 +161,10 @@ start_registry() {
     
     echo "🚀 Starting local registry..."
     docker run -d \
-        --name $REGISTRY_CONTAINER \
+        --name "$REGISTRY_CONTAINER" \
         --restart=always \
         -p 5000:5000 \
-        -v $(pwd)/registry-data:/var/lib/registry \
+        -v "$(pwd)/registry-data:/var/lib/registry" \
         registry:2
     
     # Ждем пока registry запустится
@@ -183,8 +183,8 @@ start_registry() {
 stop_registry() {
     if check_registry; then
         echo "🛑 Stopping registry..."
-        docker stop $REGISTRY_CONTAINER
-        docker rm $REGISTRY_CONTAINER
+        docker stop "$REGISTRY_CONTAINER"
+        docker rm "$REGISTRY_CONTAINER"
         echo "✅ Registry stopped"
     else
         echo "ℹ️ Registry is not running"
@@ -220,7 +220,7 @@ build_image() {
     fi
     
     # Собираем образ с правильным контекстом (корень проекта)
-    docker build -t $image_name -f $dockerfile_path .
+    docker build -t "$image_name" -f "$dockerfile_path" .
     echo "✅ Built ${image_name}"
 }
 
@@ -230,7 +230,7 @@ push_to_local() {
     local image_name="${REGISTRY}/${service}:${TAG}"
     
     echo "📤 Pushing ${service} to local registry..."
-    docker push $image_name
+    docker push "$image_name"
     echo "✅ Pushed ${image_name}"
 }
 
@@ -238,7 +238,7 @@ push_to_local() {
 build_all() {
     echo "🏗️ Building all services..."
     for service in "${SERVICES[@]}"; do
-        build_image $service
+        build_image "$service"
     done
     echo "✅ All images built"
 }
@@ -247,7 +247,7 @@ build_all() {
 push_all_local() {
     echo "📤 Pushing all images to local registry..."
     for service in "${SERVICES[@]}"; do
-        push_to_local $service
+        push_to_local "$service"
     done
     echo "✅ All images pushed to registry"
 }
@@ -256,7 +256,7 @@ push_all_local() {
 clean_registry() {
     echo "🧹 Cleaning registry..."
     if check_registry; then
-        docker exec $REGISTRY_CONTAINER registry garbage-collect /etc/docker/registry/config.yml --delete-untagged=true
+        docker exec "$REGISTRY_CONTAINER" registry garbage-collect /etc/docker/registry/config.yml --delete-untagged=true
         echo "✅ Registry cleaned"
     else
         echo "ℹ️ Registry is not running"
@@ -268,8 +268,8 @@ clean_images() {
     echo "🧹 Removing RTB images..."
     for service in "${SERVICES[@]}"; do
         local image_name="${REGISTRY}/${service}:${TAG}"
-        if docker image inspect $image_name >/dev/null 2>&1; then
-            docker rmi $image_name
+        if docker image inspect "$image_name" >/dev/null 2>&1; then
+            docker rmi "$image_name"
             echo "✅ Removed ${image_name}"
         fi
     done

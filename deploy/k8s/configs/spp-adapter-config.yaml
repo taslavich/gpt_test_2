@@ -1,4 +1,3 @@
-# deploy/k8s/configs/sppadapter-config.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,6 +11,6 @@ data:
   BURL_TIMEOUT: "5s"
   GET_WINNER_BID_TIMEOUT: "10s"
 
-  GEO_IP_DB_PATH: "/GeoIP2_City.mmdb"
+  GEO_IP_DB_PATH: "/data/GeoIP2_City.mmdb"
 
   URI_OF_ORCHESTRATOR: "orchestrator-service:8081"

@@ -10,13 +10,12 @@ COPY . .
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags='-s -w' -o /out/bid-engine ./cmd/bid-engine
+    go build -trimpath -ldflags='-s -w' -o /out/kafka-loader ./cmd/kafka-loader
 
 FROM alpine:3.20
 RUN addgroup -S app && adduser -S -G app app \
     && apk add --no-cache ca-certificates tzdata
 WORKDIR /app
-COPY --from=build /out/bid-engine /usr/local/bin/bid-engine
+COPY --from=build /out/kafka-loader /usr/local/bin/kafka-loader
 USER app
-EXPOSE 8080
-ENTRYPOINT ["/usr/local/bin/bid-engine"]
+ENTRYPOINT ["/usr/local/bin/kafka-loader"]
