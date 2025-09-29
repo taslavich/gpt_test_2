@@ -4,6 +4,7 @@ set -e  # Останавливаться при ошибках
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 K8S_DIR="$SCRIPT_DIR/deploy/k8s"
+ASSETS_DIR="$SCRIPT_DIR/deploy/assets"
 NAMESPACE="exchange"
 
 echo "=== RTB Exchange Deployment ==="
