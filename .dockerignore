@@ -1,0 +1,32 @@
+# Build artifacts
+bin/
+*.out
+
+# Version control
+git/
+.git
+.gitignore
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# Vendor/cache
+vendor/
+node_modules/
+
+# Runtime data
+registry-data/
+coverage/
+
+# Local environment
+.env*
+cmd/*/.env*
+
+# Kubernetes manifests and deployment assets
+.deploy/
+deploy/k8s/
+
+# Misc
+*.log

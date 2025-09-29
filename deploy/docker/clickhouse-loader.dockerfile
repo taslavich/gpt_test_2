@@ -1,14 +1,21 @@
-FROM golang:1.23-alpine AS builder
-WORKDIR /app
+# syntax=docker/dockerfile:1.7
+ARG GO_VERSION=1.24.6
+
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
+WORKDIR /src
+RUN apk add --no-cache build-base
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/clickhouse-loader ./cmd/clickhouse-loader
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags='-s -w' -o /out/clickhouse-loader ./cmd/clickhouse-loader
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata
-WORKDIR /root/
-COPY --from=builder /bin/clickhouse-loader .
-COPY deploy/k8s/configs/clickhouse-loader-config.yaml ./config.yaml
-EXPOSE 8080
-CMD ["./clickhouse-loader", "-config", "./config.yaml"]
+FROM alpine:3.20
+RUN addgroup -S app && adduser -S -G app app \
+    && apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+COPY --from=build /out/clickhouse-loader /usr/local/bin/clickhouse-loader
+USER app
+ENTRYPOINT ["/usr/local/bin/clickhouse-loader"]
