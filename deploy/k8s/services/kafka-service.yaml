@@ -1,4 +1,3 @@
-# deploy/k8s/kafka-services.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,14 +8,14 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - port: 9092
-    targetPort: 9092
-    protocol: TCP
-    name: client
-  - port: 9093
-    targetPort: 9093
-    protocol: TCP
-    name: controller
+    - port: 9092
+      targetPort: 9092
+      protocol: TCP
+      name: client
+    - port: 9093
+      targetPort: 9093
+      protocol: TCP
+      name: controller
   selector:
     app: kafka
 ---
@@ -29,10 +28,10 @@ metadata:
     app: kafka
 spec:
   ports:
-  - port: 9092
-    targetPort: 9092
-    protocol: TCP
-    name: client
+    - port: 9092
+      targetPort: 9092
+      protocol: TCP
+      name: client
   selector:
     app: kafka
   type: ClusterIP
