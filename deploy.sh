@@ -9,7 +9,7 @@ NAMESPACE="exchange"
 echo "=== RTB Exchange Deployment ==="
 
 usage() {
-    echo "Usage: $0 [all|configs|redis|kafka|clickhouse|loaders|services|ingress|status|logs|test|clean|destroy]"
+    echo "Usage: $0 [all|configs|redis|kafka|clickhouse|loaders|services|gateway|ingress|status|logs|test|clean|destroy]"
     echo "  all         - Full deployment (default)"
     echo "  configs     - Apply only configs"
     echo "  redis       - Deploy only Redis"
@@ -17,6 +17,7 @@ usage() {
     echo "  clickhouse  - Configure ClickHouse Cloud connection"
     echo "  loaders     - Deploy only Kafka and ClickHouse loaders"
     echo "  services    - Deploy only microservices"
+    echo "  gateway     - Deploy only external gateway"
     echo "  ingress     - Deploy only ingress"
     echo "  status      - Check deployment status"
     echo "  logs        - Show logs"
@@ -185,86 +186,84 @@ destroy_namespace() {
 # Функция деплоя конфигов
 deploy_configs() {
     echo "📄 Deploying configs..."
+
+    if [ -f "$K8S_DIR/namespace.yaml" ]; then
+        kubectl apply -f $K8S_DIR/namespace.yaml
+    fi
+
     if [ -d "$K8S_DIR/configs" ]; then
-        kubectl apply -f $K8S_DIR/configs/ -n $NAMESPACE
+        kubectl apply -f $K8S_DIR/configs/
         echo "✅ Configs deployed"
     else
         echo "❌ Configs directory not found: $K8S_DIR/configs/"
         return 1
+    fi
+
+    if [ -d "$K8S_DIR/secrets" ]; then
+        kubectl apply -f $K8S_DIR/secrets/
+        echo "✅ Secrets deployed"
     fi
 }
 
 # Функция деплоя Redis
 deploy_redis() {
     echo "🔴 Deploying Redis..."
-    
+
     local redis_files=(
         "$K8S_DIR/deployments/redis-deployment.yaml"
         "$K8S_DIR/services/redis-service.yaml"
     )
-    
+
     for file in "${redis_files[@]}"; do
         if [ -f "$file" ]; then
-            kubectl apply -f $file -n $NAMESPACE
+            kubectl apply -f $file
         else
             echo "❌ Redis file not found: $file"
             return 1
         fi
     done
-    
+
     echo "⏳ Waiting for Redis to be ready..."
-    kubectl wait --for=condition=ready pod -l app=redis -n $NAMESPACE --timeout=120s
+    kubectl rollout status deployment/redis-deployment -n $NAMESPACE --timeout=120s
     echo "✅ Redis deployed and ready"
 }
 
 # Функция деплоя Kafka
 deploy_kafka() {
     echo "📊 Deploying Kafka cluster..."
-    
-    # Используем ваши файлы (один сервис и один деплоймент)
+
     local kafka_files=(
         "$K8S_DIR/services/kafka-service.yaml"
         "$K8S_DIR/deployments/kafka-deployment.yaml"
     )
-    
+
     for file in "${kafka_files[@]}"; do
         if [ -f "$file" ]; then
-            kubectl apply -f $file -n $NAMESPACE
+            kubectl apply -f $file
             echo "✅ Applied: $(basename $file)"
         else
             echo "❌ Kafka file not found: $file"
             return 1
         fi
     done
-    
-    # Ждем запуска Kafka
-    echo "⏳ Waiting for Kafka to start..."
-    sleep 30
-    
-    # Форматируем storage для Kafka (если нужно)
-    echo "🔧 Formatting Kafka storage (if required)..."
-    if kubectl get pods -n $NAMESPACE -l app=kafka 2>/dev/null | grep -q kafka; then
-        kubectl exec -n $NAMESPACE deployment/kafka -- \
-            kafka-storage.sh format -t "4L6g3nShT-eMCtK--X86sw" -c /etc/kafka/kafka.properties || true
-    fi
-    
-    # Ждем готовности пода Kafka
+
     echo "⏳ Waiting for Kafka to be ready..."
-    kubectl wait --for=condition=ready pod -l app=kafka -n $NAMESPACE --timeout=300s
-    
+    kubectl rollout status statefulset/kafka -n $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=ready pod/kafka-0 -n $NAMESPACE --timeout=120s
+
     echo "✅ Kafka deployed"
 }
 
 # Функция настройки ClickHouse Cloud
 setup_clickhouse_cloud() {
     echo "☁️ Configuring ClickHouse Cloud connection..."
-    
+
     # Проверяем наличие секрета с данными ClickHouse Cloud
     if kubectl get secret clickhouse-cloud-secret -n $NAMESPACE >/dev/null 2>&1; then
         echo "✅ ClickHouse Cloud secret already exists"
         return 0
     fi
-    
+
     echo "📝 Please provide ClickHouse Cloud connection details:"
     read -p "ClickHouse Cloud Host: " ch_host
     read -p "ClickHouse Cloud Port (default: 9440): " ch_port
@@ -272,10 +271,10 @@ setup_clickhouse_cloud() {
     read -s -p "ClickHouse Cloud Password: " ch_password
     echo
     read -p "ClickHouse Cloud Database (default: default): " ch_database
-    
+
     ch_port=${ch_port:-9440}
     ch_database=${ch_database:-default}
-    
+
     # Создаем секрет с данными подключения
     kubectl create secret generic clickhouse-cloud-secret \
         --namespace $NAMESPACE \
@@ -285,9 +284,9 @@ setup_clickhouse_cloud() {
         --from-literal=password="$ch_password" \
         --from-literal=database="$ch_database" \
         --dry-run=client -o yaml | kubectl apply -f -
-    
+
     echo "✅ ClickHouse Cloud configuration saved as secret"
-    
+
     # Обновляем конфиг clickhouse-loader для использования Cloud
     if [ -f "$K8S_DIR/configs/clickhouse-loader-config.yaml" ]; then
         echo "🔧 Updating clickhouse-loader config for Cloud..."
@@ -300,68 +299,92 @@ setup_clickhouse_cloud() {
 # Функция деплоя лоадеров
 deploy_loaders() {
     echo "📥 Deploying loaders..."
-    
+
     local loader_files=(
         "$K8S_DIR/deployments/kafka-loader-deployment.yaml"
         "$K8S_DIR/services/kafka-loader-service.yaml"
         "$K8S_DIR/deployments/clickhouse-loader-deployment.yaml"
         "$K8S_DIR/services/clickhouse-loader-service.yaml"
     )
-    
+
     for file in "${loader_files[@]}"; do
         if [ -f "$file" ]; then
-            kubectl apply -f $file -n $NAMESPACE
+            kubectl apply -f $file
             echo "✅ Applied: $(basename $file)"
         else
             echo "⚠️ Loader file not found: $file"
         fi
     done
-    
+
     echo "⏳ Waiting for loaders to start..."
-    sleep 20
+    kubectl rollout status deployment/kafka-loader -n $NAMESPACE --timeout=180s
+    kubectl rollout status deployment/clickhouse-loader -n $NAMESPACE --timeout=180s
     echo "✅ Loaders deployed"
 }
 
 # Функция деплоя сервисов
 deploy_services() {
     echo "🚀 Deploying microservices..."
-    
+
     local services=("bid-engine" "orchestrator" "router" "spp-adapter")
-    
+
     for service in "${services[@]}"; do
         echo "📦 Deploying $service..."
-        
+
         local deployment_file="$K8S_DIR/deployments/${service}-deployment.yaml"
         local service_file="$K8S_DIR/services/${service}-service.yaml"
-        
+        local deployment_name=${service}-deployment
+
         if [ -f "$deployment_file" ]; then
-            kubectl apply -f $deployment_file -n $NAMESPACE
+            kubectl apply -f $deployment_file
         else
             echo "❌ Deployment file not found: $deployment_file"
             return 1
         fi
-        
+
         if [ -f "$service_file" ]; then
-            kubectl apply -f $service_file -n $NAMESPACE
+            kubectl apply -f $service_file
         else
             echo "❌ Service file not found: $service_file"
             return 1
         fi
+
+        kubectl rollout status deployment/$deployment_name -n $NAMESPACE --timeout=180s
     done
-    
-    echo "⏳ Waiting for services to start..."
-    sleep 20
-    
+
     echo "📊 Services status:"
-    kubectl get pods -n $NAMESPACE -l app.kubernetes.io/name -o wide
+    kubectl get pods -n $NAMESPACE
     echo "✅ Services deployed"
+}
+
+# Функция деплоя внешнего шлюза
+deploy_gateway() {
+    echo "🌉 Deploying external gateway..."
+
+    local config_file="$K8S_DIR/configs/gateway-config.yaml"
+    local deployment_file="$K8S_DIR/deployments/gateway-deployment.yaml"
+    local service_file="$K8S_DIR/services/gateway-service.yaml"
+
+    for file in "$config_file" "$deployment_file" "$service_file"; do
+        if [ ! -f "$file" ]; then
+            echo "❌ Gateway file not found: $file"
+            return 1
+        fi
+    done
+
+    kubectl apply -f "$config_file"
+    kubectl apply -f "$deployment_file"
+    kubectl apply -f "$service_file"
+
+    kubectl rollout status deployment/gateway-deployment -n $NAMESPACE --timeout=180s
+    echo "✅ External gateway is ready"
 }
 
 # Функция деплоя ingress
 deploy_ingress() {
     echo "🌐 Deploying ingress..."
     if [ -d "$K8S_DIR/ingress" ]; then
-        kubectl apply -f $K8S_DIR/ingress/ -n $NAMESPACE
+        kubectl apply -f $K8S_DIR/ingress/
         echo "✅ Ingress deployed"
     else
         echo "❌ Ingress directory not found: $K8S_DIR/ingress/"
@@ -385,6 +408,9 @@ check_status() {
     echo "=== Deployments ==="
     kubectl get deployments -n $NAMESPACE
     echo ""
+    echo "=== StatefulSets ==="
+    kubectl get statefulsets -n $NAMESPACE 2>/dev/null || echo "No statefulsets found"
+    echo ""
     echo "=== Ingress ==="
     kubectl get ingress -n $NAMESPACE 2>/dev/null || echo "No ingress found"
 }
@@ -392,7 +418,7 @@ check_status() {
 # Функция показа логов
 show_logs() {
     local service="${1:-}"
-    local services=("bid-engine" "orchestrator" "router" "spp-adapter" "redis" "kafka" "kafka-loader" "clickhouse-loader")
+    local services=("bid-engine" "orchestrator" "router" "spp-adapter" "redis" "kafka" "kafka-loader" "clickhouse-loader" "gateway")
     
     if [ -z "$service" ]; then
         echo "Available services: ${services[*]}"
@@ -403,6 +429,8 @@ show_logs() {
     echo "📋 Logs for $service:"
     if [ "$service" = "kafka" ]; then
         kubectl logs -l app=kafka -n $NAMESPACE --tail=50 --prefix=true
+    elif [ "$service" = "gateway" ]; then
+        kubectl logs -l app=gateway -n $NAMESPACE --tail=50
     else
         kubectl logs -l app=$service -n $NAMESPACE --tail=50
     fi
@@ -411,33 +439,67 @@ show_logs() {
 # Функция тестирования endpoints
 test_endpoints() {
     echo "🧪 Testing endpoints..."
-    
+
+    if ! command -v kubectl >/dev/null 2>&1; then
+        echo "❌ kubectl не найден. Установите kubectl, чтобы использовать тесты."
+        return 1
+    fi
+
+    if ! kubectl get nodes >/dev/null 2>&1; then
+        echo "❌ Не удалось подключиться к кластеру Kubernetes"
+        return 1
+    fi
+
     local node_ip=$(kubectl get nodes -o wide | grep 'Ready' | head -1 | awk '{print $6}')
     if [ -z "$node_ip" ]; then
         node_ip="127.0.0.1"
     fi
-    
+
     echo "Node IP: $node_ip"
+
+    local gateway_host
+    gateway_host=$(kubectl get svc gateway-service -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+    if [ -z "$gateway_host" ] || [ "$gateway_host" = "<no value>" ]; then
+        gateway_host=$(kubectl get svc gateway-service -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+    fi
+    if [ -z "$gateway_host" ] || [ "$gateway_host" = "<no value>" ]; then
+        gateway_host=$node_ip
+    fi
+
+    get_gateway_port() {
+        local port_name="$1"
+        local default_value="$2"
+        local jsonpath="{.spec.ports[?(@.name==\\\"$port_name\\\")].port}"
+        local value
+        value=$(kubectl get svc gateway-service -n $NAMESPACE -o jsonpath="$jsonpath" 2>/dev/null || true)
+        if [ -z "$value" ]; then
+            value="$default_value"
+        fi
+        echo "$value"
+    }
+
+    local http_port=$(get_gateway_port http 80)
+    local bid_port=$(get_gateway_port bid-engine 8080)
+    local orchestrator_port=$(get_gateway_port orchestrator 8081)
+    local router_port=$(get_gateway_port router 8082)
+    local spp_port=$(get_gateway_port spp-adapter 8083)
+
+    echo "Gateway host: $gateway_host"
     echo ""
-    
+
     local endpoints=(
-        "health:http://$node_ip:30000/health"
-        "bid:http://$node_ip:30000/bid"
+        "gateway:http://$gateway_host:$http_port/healthz"
+        "bid-engine:http://$gateway_host:$bid_port/health"
+        "orchestrator:http://$gateway_host:$orchestrator_port/health"
+        "router:http://$gateway_host:$router_port/health"
+        "spp-adapter:http://$gateway_host:$spp_port/health"
+        "gateway-router:http://$gateway_host:$http_port/router/health"
     )
-    
-    # Добавляем endpoints лоадеров если они существуют
-    if kubectl get service kafka-loader-service -n $NAMESPACE >/dev/null 2>&1; then
-        endpoints+=("kafka-loader:http://$node_ip:30085/health")
-    fi
-    
-    if kubectl get service clickhouse-loader-service -n $NAMESPACE >/dev/null 2>&1; then
-        endpoints+=("clickhouse-loader:http://$node_ip:30084/health")
-    fi
-    
+
     for endpoint in "${endpoints[@]}"; do
-        local name=$(echo $endpoint | cut -d: -f1)
-        local url=$(echo $endpoint | cut -d: -f2-)
-        
+        local name=$(echo "$endpoint" | cut -d: -f1)
+        local url=$(echo "$endpoint" | cut -d: -f2-)
+
         echo "Testing $name ($url)..."
         if curl -s --connect-timeout 5 "$url" >/dev/null; then
             echo "✅ $name is accessible"
@@ -445,6 +507,8 @@ test_endpoints() {
             echo "❌ $name is not accessible"
         fi
     done
+
+    unset -f get_gateway_port
 }
 
 # Основная функция деплоя
@@ -475,6 +539,7 @@ deploy_all() {
     
     deploy_loaders
     deploy_services
+    deploy_gateway
     deploy_ingress
     
     echo "✅ Full deployment completed!"
@@ -512,6 +577,10 @@ case "${1:-all}" in
     "services")
         auto_setup_before_deploy
         deploy_services
+        ;;
+    "gateway")
+        auto_setup_before_deploy
+        deploy_gateway
         ;;
     "ingress")
         auto_setup_before_deploy
