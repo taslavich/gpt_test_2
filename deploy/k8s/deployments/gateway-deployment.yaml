@@ -25,6 +25,8 @@ spec:
           ports:
             - name: http
               containerPort: 80
+            - name: https
+              containerPort: 443
             - name: bid-engine
               containerPort: 8080
             - name: orchestrator
@@ -53,6 +55,9 @@ spec:
             - name: nginx-config
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
+            - name: gateway-tls
+              mountPath: /etc/nginx/tls
+              readOnly: true
           resources:
             requests:
               cpu: "100m"
@@ -67,3 +72,6 @@ spec:
             items:
               - key: nginx.conf
                 path: nginx.conf
+        - name: gateway-tls
+          secret:
+            secretName: gateway-tls

@@ -99,5 +99,5 @@ cat <<'HINT'
 Советы:
   • Создайте A/AAAA запись у своего DNS-провайдера, указывающую на IP сервиса.
   • Для локального тестирования можно воспользоваться /etc/hosts (см. ключ --apply).
-  • После обновления DNS проверьте доступность: curl http://DOMAIN/healthz
+  • После обновления DNS проверьте доступность: curl http://DOMAIN/healthz и curl https://DOMAIN/healthz -k
 HINT

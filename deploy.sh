@@ -198,6 +198,11 @@ deploy_configs() {
         echo "❌ Configs directory not found: $K8S_DIR/configs/"
         return 1
     fi
+
+    if [ -d "$K8S_DIR/secrets" ]; then
+        kubectl apply -f $K8S_DIR/secrets/
+        echo "✅ Secrets deployed"
+    fi
 }
 
 # Функция деплоя Redis

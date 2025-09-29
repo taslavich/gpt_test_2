@@ -107,6 +107,60 @@ data:
       }
 
       server {
+<<<<<<< codex-jvu87d
+        listen 443 ssl http2;
+        server_name _;
+
+        ssl_certificate     /etc/nginx/tls/tls.crt;
+        ssl_certificate_key /etc/nginx/tls/tls.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_prefer_server_ciphers on;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+        location = /healthz {
+          add_header Content-Type application/json;
+          return 200 '{"status":"ok"}';
+        }
+
+        location /bid-engine/ {
+          rewrite ^/bid-engine(/|$)(.*)$ /$2 break;
+          proxy_pass http://bid_engine;
+        }
+
+        location /orchestrator/ {
+          rewrite ^/orchestrator(/|$)(.*)$ /$2 break;
+          proxy_pass http://orchestrator;
+        }
+
+        location /router/ {
+          rewrite ^/router(/|$)(.*)$ /$2 break;
+          proxy_pass http://router;
+        }
+
+        location /spp-adapter/ {
+          rewrite ^/spp-adapter(/|$)(.*)$ /$2 break;
+          proxy_pass http://spp_adapter;
+        }
+
+        location /kafka-loader/ {
+          rewrite ^/kafka-loader(/|$)(.*)$ /$2 break;
+          proxy_pass http://kafka_loader;
+        }
+
+        location /clickhouse-loader/ {
+          rewrite ^/clickhouse-loader(/|$)(.*)$ /$2 break;
+          proxy_pass http://clickhouse_loader;
+        }
+
+        location / {
+          add_header Content-Type text/plain;
+          return 200 "RTB Exchange gateway is running";
+        }
+      }
+
+      server {
+=======
+>>>>>>> master
         listen 8080;
         server_name _;
         location / {

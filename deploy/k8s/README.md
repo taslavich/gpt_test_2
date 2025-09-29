@@ -8,7 +8,7 @@
 - **Kafka (KRaft)** – statefulset + headless service (`kafka-headless`) и клиентский service (`kafka-service`).
 - **ClickHouse/Kafka loaders** – отдельные деплойменты с ClusterIP сервисами.
 - **Микросервисы** – `bid-engine`, `orchestrator`, `router`, `spp-adapter`.
-- **Gateway** – NGINX-балансировщик, который принимает внешние HTTP вызовы и проксирует их в сервисы по портам/путям.
+- **Gateway** – NGINX-балансировщик, который принимает внешние HTTP(S) вызовы и проксирует их в сервисы по портам/путям.
 - **Ingress** – опциональный слой, если в кластере есть установленный Ingress Controller.
 
 ## Gateway (балансировщик)
@@ -17,11 +17,11 @@
 
 - `configs/gateway-config.yaml` – конфигурация NGINX.
 - `deployments/gateway-deployment.yaml` – деплоймент с 2 репликами и health-чеками.
-- `services/gateway-service.yaml` – сервис типа `LoadBalancer` с набором портов: `80` (HTTP роутинг), `8080`–`8085` (прямой доступ к сервисам).
+- `services/gateway-service.yaml` – сервис типа `LoadBalancer` с набором портов: `80/443` (HTTP(S) роутинг), `8080`–`8085` (прямой доступ к сервисам).
 
-### HTTP-маршрутизация
+### HTTP/HTTPS-маршрутизация
 
-На порту `80` доступны следующие префиксы:
+На портах `80` (HTTP) и `443` (HTTPS) доступны следующие префиксы:
 
 | Префикс                | Целевой сервис |
 |------------------------|----------------|
@@ -32,12 +32,13 @@
 | `/kafka-loader/`       | kafka-loader   |
 | `/clickhouse-loader/`  | clickhouse-loader |
 
-Проверка работоспособности – `curl http://<domain>/healthz`.
+Проверка работоспособности – `curl http://<domain>/healthz` или `curl https://<domain>/healthz -k` (если используется self-signed сертификат).
 
 ### Прямой доступ по портам
 
 | Внешний порт | Назначение |
 |--------------|-----------|
+| `443`        | HTTPS для всех маршрутов |
 | `8080`       | bid-engine |
 | `8081`       | orchestrator |
 | `8082`       | router |
@@ -77,11 +78,12 @@ curl http://<domain>:8083/health   # прямой доступ к SPP adapter
 
 ## HTTPS
 
-Для включения TLS:
+TLS уже включён по умолчанию. В репозитории добавлен dev/self-signed сертификат (`secrets/gateway-tls-secret.yaml`), который применяет `deploy.sh`. Для production замените значения на боевой сертификат:
 
-1. Создайте секрет с сертификатом: `kubectl create secret tls gateway-tls --key tls.key --cert tls.crt -n exchange`.
-2. Добавьте блок `server { listen 443 ssl; ... }` в `gateway-config.yaml` и смонтируйте секрет в `gateway-deployment.yaml` (volume + volumeMount).
-3. Перезапустите шлюз: `kubectl rollout restart deployment/gateway-deployment -n exchange`.
+1. Подготовьте свои `tls.crt` и `tls.key`.
+2. Создайте secret: `kubectl create secret tls gateway-tls --key tls.key --cert tls.crt -n exchange --dry-run=client -o yaml > deploy/k8s/secrets/gateway-tls-secret.yaml`.
+3. Примените `./deploy.sh gateway` или `kubectl apply -f deploy/k8s/secrets/gateway-tls-secret.yaml`.
+4. Перезапустите шлюз: `kubectl rollout restart deployment/gateway-deployment -n exchange`.
 
 ## Примечания
 
