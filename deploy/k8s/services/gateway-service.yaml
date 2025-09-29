@@ -42,7 +42,7 @@ spec:
       port: 8083
       targetPort: 8083
       nodePort: 31083
-    - name: clickhouse-loader
+    - name: ch-loader
       protocol: TCP
       port: 8084
       targetPort: 8084

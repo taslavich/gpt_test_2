@@ -35,7 +35,7 @@ spec:
               containerPort: 8082
             - name: spp-adapter
               containerPort: 8083
-            - name: clickhouse-loader
+            - name: ch-loader
               containerPort: 8084
             - name: kafka-loader
               containerPort: 8085
