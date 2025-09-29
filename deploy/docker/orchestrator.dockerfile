@@ -1,14 +1,22 @@
-FROM golang:1.23-alpine AS builder
-WORKDIR /app
+# syntax=docker/dockerfile:1.7
+ARG GO_VERSION=1.24.6
+
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
+WORKDIR /src
+RUN apk add --no-cache build-base
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/orchestrator ./cmd/orchestrator
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags='-s -w' -o /out/orchestrator ./cmd/orchestrator
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates tzdata
-WORKDIR /root/
-COPY --from=builder /bin/orchestrator .
-COPY deploy/k8s/configs/orchestrator-config.yaml ./config.yaml
+FROM alpine:3.20
+RUN addgroup -S app && adduser -S -G app app \
+    && apk add --no-cache ca-certificates tzdata
+WORKDIR /app
+COPY --from=build /out/orchestrator /usr/local/bin/orchestrator
+USER app
 EXPOSE 8081
-CMD ["./orchestrator", "-config", "./config.yaml"]
+ENTRYPOINT ["/usr/local/bin/orchestrator"]

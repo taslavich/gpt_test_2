@@ -1,4 +1,3 @@
-# deploy/k8s/kafka-statefulset.yaml
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -6,7 +5,7 @@ metadata:
   namespace: exchange
 spec:
   serviceName: kafka-headless
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: kafka
@@ -17,82 +16,47 @@ spec:
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-      - name: kafka
-        image: apache/kafka:3.4.0
-        ports:
-        - containerPort: 9092
-          name: client
-        - containerPort: 9093
-          name: controller
-        env:
-        - name: CLUSTER_ID
-          value: "4L6g3nShT-eMCtK--X86sw"
-        - name: KAFKA_NODE_ID
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: KAFKA_PROCESS_ROLES
-          value: "controller,broker"
-        - name: KAFKA_LISTENERS
-          value: "PLAINTEXT://:9092,CONTROLLER://:9093"
-        - name: KAFKA_ADVERTISED_LISTENERS
-          value: "PLAINTEXT://$(POD_NAME).kafka-headless.exchange.svc.cluster.local:9092"
-        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
-          value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
-          value: "0@kafka-0.kafka-headless.exchange.svc.cluster.local:9093,1@kafka-1.kafka-headless.exchange.svc.cluster.local:9093,2@kafka-2.kafka-headless.exchange.svc.cluster.local:9093"
-        - name: KAFKA_CONTROLLER_LISTENER_NAMES
-          value: "CONTROLLER"
-        - name: KAFKA_LOG_DIRS
-          value: "/var/lib/kafka/data"
-        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
-          value: "3"
-        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
-          value: "3"
-        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
-          value: "2"
-        - name: KAFKA_NUM_PARTITIONS
-          value: "3"
-        - name: KAFKA_DEFAULT_REPLICATION_FACTOR
-          value: "3"
-        - name: KAFKA_MIN_INSYNC_REPLICAS
-          value: "2"
-        - name: KAFKA_LOG_RETENTION_HOURS
-          value: "168"
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        resources:
-          requests:
-            memory: "2Gi"
-            cpu: "1000m"
-          limits:
-            memory: "4Gi"
-            cpu: "2000m"
-        readinessProbe:
-          tcpSocket:
-            port: 9092
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        livenessProbe:
-          tcpSocket:
-            port: 9092
-          initialDelaySeconds: 60
-          periodSeconds: 30
-        volumeMounts:
+        - name: kafka
+          image: apache/kafka:3.7.0
+          ports:
+            - containerPort: 9092
+              name: client
+            - containerPort: 9093
+              name: controller
+          envFrom:
+            - configMapRef:
+                name: kafka-config
+          env:
+            - name: CLUSTER_ID
+              value: "4L6g3nShT-eMCtK--X86sw"
+            - name: KAFKA_CLUSTER_ID
+              value: "4L6g3nShT-eMCtK--X86sw"
+            - name: KAFKA_NODE_ID
+              value: "1"
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: "1@kafka-0.kafka-headless.exchange.svc.cluster.local:9093"
+            - name: KAFKA_LOG_DIRS
+              value: "/var/lib/kafka/data"
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
         - name: kafka-data
-          mountPath: /var/lib/kafka/data
-  volumeClaimTemplates:
-  - metadata:
-      name: kafka-data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      storageClassName: "fast-ssd"
-      resources:
-        requests:
-          storage: 100Gi
+          emptyDir: {}

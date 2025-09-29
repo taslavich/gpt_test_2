@@ -18,22 +18,22 @@ spec:
         tier: backend
     spec:
       containers:
-      - name: router
-        image: localhost:5000/exchange/router:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 8082
-        envFrom:
-        - configMapRef:
-            name: router-config
-        - configMapRef:
-            name: redis-config
-        - secretRef:
-            name: redis-auth
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "150m"
-          limits:
-            memory: "256Mi"
-            cpu: "300m"
+        - name: router
+          image: localhost:5000/exchange/router:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: router-config
+            - configMapRef:
+                name: redis-config
+            - secretRef:
+                name: redis-auth
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "150m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
