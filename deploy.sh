@@ -115,15 +115,16 @@ EOF
 # Автоматическая настройка перед деплоем
 auto_setup_before_deploy() {
     echo "🔧 Auto-setting up environment for deployment..."
-    
+
     # Настраиваем k3s если он установлен
     setup_k3s_registry
-    
+
     # Проверяем и запускаем registry
     if ! curl -s http://localhost:5000/v2/_catalog >/dev/null; then
         echo "🚀 Starting local registry..."
-        if [ -f "../build.sh" ]; then
-            ../build.sh registry-start
+        local build_script="$SCRIPT_DIR/build.sh"
+        if [ -f "$build_script" ]; then
+            "$build_script" registry-start
         else
             echo "❌ build.sh not found. Please start registry manually."
             return 1
@@ -145,7 +146,7 @@ auto_setup_before_deploy() {
     done
     
     if [ $images_missing -eq 1 ]; then
-        echo "⚠️ Some images missing in registry. Please run '../build.sh push-local' first."
+        echo "⚠️ Some images missing in registry. Please run './build.sh push-local' first."
         return 1
     fi
     
@@ -156,9 +157,9 @@ auto_setup_before_deploy() {
 clean_resources() {
     echo "🧹 Cleaning all resources in namespace $NAMESPACE..."
     
-    if kubectl get namespace $NAMESPACE >/dev/null 2>&1; then
-        kubectl delete all --all -n $NAMESPACE
-        kubectl delete configmap,secret,ingress --all -n $NAMESPACE
+    if kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
+        kubectl delete all --all -n "$NAMESPACE"
+        kubectl delete configmap,secret,ingress --all -n "$NAMESPACE"
         echo "✅ All resources cleaned in namespace $NAMESPACE"
     else
         echo "ℹ️ Namespace $NAMESPACE does not exist"
@@ -169,14 +170,15 @@ clean_resources() {
 destroy_namespace() {
     echo "💥 COMPLETELY destroying namespace $NAMESPACE..."
     
-    if kubectl get namespace $NAMESPACE >/dev/null 2>&1; then
-        kubectl delete namespace $NAMESPACE
+    if kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
+        kubectl delete namespace "$NAMESPACE"
         echo "✅ Namespace $NAMESPACE destroyed"
         
         # Также останавливаем registry
-        if [ -f "../build.sh" ]; then
+        local build_script="$SCRIPT_DIR/build.sh"
+        if [ -f "$build_script" ]; then
             echo "🛑 Stopping registry..."
-            ../build.sh registry-stop
+            "$build_script" registry-stop
         fi
     else
         echo "ℹ️ Namespace $NAMESPACE does not exist"
@@ -188,11 +190,11 @@ deploy_configs() {
     echo "📄 Deploying configs..."
 
     if [ -f "$K8S_DIR/namespace.yaml" ]; then
-        kubectl apply -f $K8S_DIR/namespace.yaml
+        kubectl apply -f "$K8S_DIR/namespace.yaml"
     fi
 
     if [ -d "$K8S_DIR/configs" ]; then
-        kubectl apply -f $K8S_DIR/configs/
+        kubectl apply -f "$K8S_DIR/configs/"
         echo "✅ Configs deployed"
     else
         echo "❌ Configs directory not found: $K8S_DIR/configs/"
@@ -200,7 +202,7 @@ deploy_configs() {
     fi
 
     if [ -d "$K8S_DIR/secrets" ]; then
-        kubectl apply -f $K8S_DIR/secrets/
+        kubectl apply -f "$K8S_DIR/secrets/"
         echo "✅ Secrets deployed"
     fi
 }
@@ -216,7 +218,7 @@ deploy_redis() {
 
     for file in "${redis_files[@]}"; do
         if [ -f "$file" ]; then
-            kubectl apply -f $file
+            kubectl apply -f "$file"
         else
             echo "❌ Redis file not found: $file"
             return 1
@@ -224,7 +226,7 @@ deploy_redis() {
     done
 
     echo "⏳ Waiting for Redis to be ready..."
-    kubectl rollout status deployment/redis-deployment -n $NAMESPACE --timeout=120s
+    kubectl rollout status deployment/redis-deployment -n "$NAMESPACE" --timeout=120s
     echo "✅ Redis deployed and ready"
 }
 
@@ -239,7 +241,7 @@ deploy_kafka() {
 
     for file in "${kafka_files[@]}"; do
         if [ -f "$file" ]; then
-            kubectl apply -f $file
+            kubectl apply -f "$file"
             echo "✅ Applied: $(basename $file)"
         else
             echo "❌ Kafka file not found: $file"
@@ -248,8 +250,8 @@ deploy_kafka() {
     done
 
     echo "⏳ Waiting for Kafka to be ready..."
-    kubectl rollout status statefulset/kafka -n $NAMESPACE --timeout=300s
-    kubectl wait --for=condition=ready pod/kafka-0 -n $NAMESPACE --timeout=120s
+    kubectl rollout status statefulset/kafka -n "$NAMESPACE" --timeout=300s
+    kubectl wait --for=condition=ready pod/kafka-0 -n "$NAMESPACE" --timeout=120s
 
     echo "✅ Kafka deployed"
 }
@@ -277,7 +279,7 @@ setup_clickhouse_cloud() {
 
     # Создаем секрет с данными подключения
     kubectl create secret generic clickhouse-cloud-secret \
-        --namespace $NAMESPACE \
+        --namespace "$NAMESPACE" \
         --from-literal=host="$ch_host" \
         --from-literal=port="$ch_port" \
         --from-literal=username="$ch_username" \
@@ -291,7 +293,7 @@ setup_clickhouse_cloud() {
     if [ -f "$K8S_DIR/configs/clickhouse-loader-config.yaml" ]; then
         echo "🔧 Updating clickhouse-loader config for Cloud..."
         # Создаем патч для использования Cloud соединения
-        kubectl patch configmap clickhouse-loader-config -n $NAMESPACE --type merge \
+        kubectl patch configmap clickhouse-loader-config -n "$NAMESPACE" --type merge \
             -p "{\"data\":{\"CLICK_HOUSE_DSN\":\"https://${ch_host}:${ch_port}?username=${ch_username}&password=${ch_password}&database=${ch_database}&secure=true\"}}"
     fi
 }
@@ -309,7 +311,7 @@ deploy_loaders() {
 
     for file in "${loader_files[@]}"; do
         if [ -f "$file" ]; then
-            kubectl apply -f $file
+            kubectl apply -f "$file"
             echo "✅ Applied: $(basename $file)"
         else
             echo "⚠️ Loader file not found: $file"
@@ -317,8 +319,8 @@ deploy_loaders() {
     done
 
     echo "⏳ Waiting for loaders to start..."
-    kubectl rollout status deployment/kafka-loader -n $NAMESPACE --timeout=180s
-    kubectl rollout status deployment/clickhouse-loader -n $NAMESPACE --timeout=180s
+    kubectl rollout status deployment/kafka-loader -n "$NAMESPACE" --timeout=180s
+    kubectl rollout status deployment/clickhouse-loader -n "$NAMESPACE" --timeout=180s
     echo "✅ Loaders deployed"
 }
 
@@ -336,24 +338,24 @@ deploy_services() {
         local deployment_name=${service}-deployment
 
         if [ -f "$deployment_file" ]; then
-            kubectl apply -f $deployment_file
+            kubectl apply -f "$deployment_file"
         else
             echo "❌ Deployment file not found: $deployment_file"
             return 1
         fi
 
         if [ -f "$service_file" ]; then
-            kubectl apply -f $service_file
+            kubectl apply -f "$service_file"
         else
             echo "❌ Service file not found: $service_file"
             return 1
         fi
 
-        kubectl rollout status deployment/$deployment_name -n $NAMESPACE --timeout=180s
+        kubectl rollout status deployment/$deployment_name -n "$NAMESPACE" --timeout=180s
     done
 
     echo "📊 Services status:"
-    kubectl get pods -n $NAMESPACE
+    kubectl get pods -n "$NAMESPACE"
     echo "✅ Services deployed"
 }
 
@@ -376,7 +378,7 @@ deploy_gateway() {
     kubectl apply -f "$deployment_file"
     kubectl apply -f "$service_file"
 
-    kubectl rollout status deployment/gateway-deployment -n $NAMESPACE --timeout=180s
+    kubectl rollout status deployment/gateway-deployment -n "$NAMESPACE" --timeout=180s
     echo "✅ External gateway is ready"
 }
 
@@ -384,7 +386,7 @@ deploy_gateway() {
 deploy_ingress() {
     echo "🌐 Deploying ingress..."
     if [ -d "$K8S_DIR/ingress" ]; then
-        kubectl apply -f $K8S_DIR/ingress/
+        kubectl apply -f "$K8S_DIR/ingress/"
         echo "✅ Ingress deployed"
     else
         echo "❌ Ingress directory not found: $K8S_DIR/ingress/"
@@ -400,19 +402,22 @@ check_status() {
     kubectl get namespaces | grep -E "(NAME|$NAMESPACE)"
     echo ""
     echo "=== Pods ==="
-    kubectl get pods -n $NAMESPACE
+    kubectl get pods -n "$NAMESPACE"
     echo ""
     echo "=== Services ==="
-    kubectl get services -n $NAMESPACE
+    kubectl get services -n "$NAMESPACE"
     echo ""
     echo "=== Deployments ==="
-    kubectl get deployments -n $NAMESPACE
+    kubectl get deployments -n "$NAMESPACE"
+    echo ""
+    echo "=== StatefulSets ==="
+    kubectl get statefulsets -n "$NAMESPACE" 2>/dev/null || echo "No statefulsets found"
     echo ""
     echo "=== StatefulSets ==="
     kubectl get statefulsets -n $NAMESPACE 2>/dev/null || echo "No statefulsets found"
     echo ""
     echo "=== Ingress ==="
-    kubectl get ingress -n $NAMESPACE 2>/dev/null || echo "No ingress found"
+    kubectl get ingress -n "$NAMESPACE" 2>/dev/null || echo "No ingress found"
 }
 
 # Функция показа логов
@@ -428,11 +433,11 @@ show_logs() {
     
     echo "📋 Logs for $service:"
     if [ "$service" = "kafka" ]; then
-        kubectl logs -l app=kafka -n $NAMESPACE --tail=50 --prefix=true
+        kubectl logs -l app=kafka -n "$NAMESPACE" --tail=50 --prefix=true
     elif [ "$service" = "gateway" ]; then
-        kubectl logs -l app=gateway -n $NAMESPACE --tail=50
+        kubectl logs -l app=gateway -n "$NAMESPACE" --tail=50
     else
-        kubectl logs -l app=$service -n $NAMESPACE --tail=50
+        kubectl logs -l app="$service" -n "$NAMESPACE" --tail=50
     fi
 }
 
@@ -450,7 +455,8 @@ test_endpoints() {
         return 1
     fi
 
-    local node_ip=$(kubectl get nodes -o wide | grep 'Ready' | head -1 | awk '{print $6}')
+    local node_ip
+    node_ip=$(kubectl get nodes -o wide | grep 'Ready' | head -1 | awk '{print $6}')
     if [ -z "$node_ip" ]; then
         node_ip="127.0.0.1"
     fi
@@ -458,9 +464,9 @@ test_endpoints() {
     echo "Node IP: $node_ip"
 
     local gateway_host
-    gateway_host=$(kubectl get svc gateway-service -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+    gateway_host=$(kubectl get svc gateway-service -n "$NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
     if [ -z "$gateway_host" ] || [ "$gateway_host" = "<no value>" ]; then
-        gateway_host=$(kubectl get svc gateway-service -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+        gateway_host=$(kubectl get svc gateway-service -n "$NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
     fi
     if [ -z "$gateway_host" ] || [ "$gateway_host" = "<no value>" ]; then
         gateway_host=$node_ip
@@ -471,7 +477,7 @@ test_endpoints() {
         local default_value="$2"
         local jsonpath="{.spec.ports[?(@.name==\\\"$port_name\\\")].port}"
         local value
-        value=$(kubectl get svc gateway-service -n $NAMESPACE -o jsonpath="$jsonpath" 2>/dev/null || true)
+        value=$(kubectl get svc gateway-service -n "$NAMESPACE" -o jsonpath="$jsonpath" 2>/dev/null || true)
         if [ -z "$value" ]; then
             value="$default_value"
         fi
@@ -516,10 +522,10 @@ deploy_all() {
     echo "🚀 Starting full deployment..."
     
     auto_setup_before_deploy
-    
-    if ! kubectl get namespace $NAMESPACE >/dev/null 2>&1; then
+
+    if ! kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
         echo "📦 Creating namespace $NAMESPACE..."
-        kubectl create namespace $NAMESPACE
+        kubectl create namespace "$NAMESPACE"
     fi
     
     # Деплоим компоненты в правильном порядке
