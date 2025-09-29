@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,14 +28,16 @@ func main() {
 
 	log.Println(cfg.Clickhouse.Username, cfg.Clickhouse.Password)
 
+	addr := net.JoinHostPort(cfg.Clickhouse.Host, cfg.Clickhouse.Port)
+
 	conn := clickhouse.OpenDB(&clickhouse.Options{
-		Addr:     []string{"hntzp0jsnf.europe-west4.gcp.clickhouse.cloud:9440"},
+		Addr:     []string{addr},
 		Protocol: clickhouse.Native,
 		TLS:      &tls.Config{},
 		Auth: clickhouse.Auth{
 			Username: cfg.Clickhouse.Username,
 			Password: cfg.Clickhouse.Password,
-			Database: "rtb",
+			Database: cfg.Clickhouse.Database,
 		},
 	})
 	defer conn.Close()
