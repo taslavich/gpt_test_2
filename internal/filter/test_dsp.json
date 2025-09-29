@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "dsps": {
+    "dsp1": {
+      "rules": [
+        {
+          "field": "device.geo.country",
+          "condition": "equal",
+          "value_type": "string",
+          "value": "US"
+        },
+        {
+          "field": "bidfloor",
+          "condition": "greater_than",
+          "value_type": "float",
+          "value": 0.5
+        },
+        {
+          "field": "app.id",
+          "condition": "exists",
+          "value_type": "string",
+          "value": ""
+        }
+      ]
+    },
+    "dsp2": {
+      "rules": [
+        {
+          "field": "banner.w",
+          "condition": "between",
+          "value_type": "int",
+          "value": [300, 800]
+        },
+        {
+          "field": "device.ip",
+          "condition": "exists",
+          "value_type": "string",
+          "value": ""
+        }
+      ]
+    }
+  }
+}

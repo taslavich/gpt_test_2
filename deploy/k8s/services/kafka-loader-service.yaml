@@ -1,0 +1,17 @@
+# deploy/k8s/kafka-loader-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-loader-service
+  namespace: exchange
+  labels:
+    app: kafka-loader
+spec:
+  ports:
+  - port: 8085
+    targetPort: 8085
+    protocol: TCP
+    name: http
+  selector:
+    app: kafka-loader
+  type: ClusterIP

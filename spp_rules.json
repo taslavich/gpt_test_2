@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "spps": {
+    "spp1": {
+      "rules": [
+        {
+          "field": "bid.price",
+          "condition": "greater_than",
+          "value_type": "float",
+          "value": 1.0
+        },
+        {
+          "field": "bid.array",
+          "condition": "exists",
+          "value_type": "string",
+          "value": ""
+        }
+      ]
+    },
+    "spp2": {
+      "rules": [
+        {
+          "field": "bid.adid",
+          "condition": "not_equal",
+          "value_type": "string",
+          "value": "test-ad"
+        },
+        {
+          "field": "bid.id",
+          "condition": "exists",
+          "value_type": "string",
+          "value": ""
+        }
+      ]
+    }
+  }
+}

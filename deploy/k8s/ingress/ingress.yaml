@@ -1,0 +1,84 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+  namespace: exchange
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: rtb.local
+    http:
+      paths:
+      # BidEngine - основной сервис для аукционов
+      - path: /api/bid-engine(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: bid-engine-service
+            port:
+              number: 8080
+      
+      # Orchestrator - оркестрация аукционов
+      - path: /api/orchestrator(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: orchestrator-service
+            port:
+              number: 8081
+      
+      # Router - маршрутизация к DSP
+      - path: /api/router(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: router-service
+            port:
+              number: 8082
+      
+      # SPP Adapter - адаптер для SSP
+      - path: /api/spp-adapter(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: spp-adapter-service
+            port:
+              number: 8083
+      
+      # Health checks для всех сервисов
+      - path: /health/bid-engine
+        pathType: Prefix
+        backend:
+          service:
+            name: bid-engine-service
+            port:
+              number: 8080
+      
+      - path: /health/orchestrator
+        pathType: Prefix
+        backend:
+          service:
+            name: orchestrator-service
+            port:
+              number: 8081
+      
+      - path: /health/router
+        pathType: Prefix
+        backend:
+          service:
+            name: router-service
+            port:
+              number: 8082
+      
+      - path: /health/spp-adapter
+        pathType: Prefix
+        backend:
+          service:
+            name: spp-adapter-service
+            port:
+              number: 8083
+      

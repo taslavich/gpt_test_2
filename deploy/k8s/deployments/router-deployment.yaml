@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router-deployment
+  namespace: exchange
+  labels:
+    app: router
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: router
+  template:
+    metadata:
+      labels:
+        app: router
+        tier: backend
+    spec:
+      containers:
+      - name: router
+        image: localhost:5000/exchange/router:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8082
+        envFrom:
+        - configMapRef:
+            name: router-config
+        - configMapRef:
+            name: redis-config
+        - secretRef:
+            name: redis-auth
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "150m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"

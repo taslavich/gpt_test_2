@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "spps": {
+    "spp1": {
+      "rules": [
+        {
+          "field": "bid.adid",
+          "condition": "equal",
+          "value_type": "string",
+          "value": "ADID"
+        },
+        {
+          "field": "bid.id",
+          "condition": "exists",
+          "value_type": "string",
+          "value": ""
+        }
+      ]
+    }
+  }
+}

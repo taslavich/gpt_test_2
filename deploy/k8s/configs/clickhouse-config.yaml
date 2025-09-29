@@ -1,0 +1,36 @@
+# deploy/k8s/configs/clickhouse-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-config
+  namespace: exchange
+data:
+  clickhouse-users.xml: |
+    <yandex>
+      <users>
+        <default>
+          <password></password>
+          <profile>default</profile>
+          <quota>default</quota>
+        </default>
+      </users>
+    </yandex>
+  
+  clickhouse-config.xml: |
+    <yandex>
+      <logger>
+        <level>information</level>
+        <console>true</console>
+      </logger>
+      
+      <listen_host>0.0.0.0</listen_host>
+      
+      <max_connections>4096</max_connections>
+      <keep_alive_timeout>3</keep_alive_timeout>
+      
+      <databases>
+        <rtb>
+          <comment>RTB Exchange Database</comment>
+        </rtb>
+      </databases>
+    </yandex>

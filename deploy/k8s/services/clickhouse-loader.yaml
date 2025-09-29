@@ -1,0 +1,17 @@
+# deploy/k8s/clickhouse-loader-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse-loader-service
+  namespace: exchange
+  labels:
+    app: clickhouse-loader
+spec:
+  ports:
+  - port: 8084
+    targetPort: 8084
+    protocol: TCP
+    name: http
+  selector:
+    app: clickhouse-loader
+  type: ClusterIP

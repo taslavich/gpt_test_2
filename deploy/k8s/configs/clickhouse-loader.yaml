@@ -1,0 +1,17 @@
+# deploy/k8s/configs/clickhouse-loader-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-loader-config
+  namespace: exchange
+data:
+  KAFKA_BROKERS: "kafka-service:9092"
+  KAFKA_TOPIC: "rtb-events"
+  KAFKA_GROUP_ID: "clickhouse-loader-group"
+  
+  CLICK_HOUSE_DSN: "tcp://clickhouse-service:9000?username=default&password=&database=rtb"
+  CLICK_HOUSE_TABLE: "rtb_events"
+  
+  BATCH_SIZE: "1000"
+  TIMEOUT_SEC: "30"
+  MIN_MESSAGES_THESHOLD: "100"

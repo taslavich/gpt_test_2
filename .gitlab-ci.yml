@@ -1,0 +1,51 @@
+# This file is a template, and might need editing before it works on your project.
+image: golang:latest
+
+before_script:
+  - go mod tidy
+  - go mod download
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+stages:
+    - test
+    - build
+    - deploy
+
+format:
+    stage: test
+    script:
+      - go fmt $(go list ./...)
+      - go vet $(go list ./...)
+    
+test:     
+    stage: test
+    script:
+      - go test -race $(go list ./...)
+
+compile:
+    stage: build
+    script:
+      - apt update
+      - apt install unzip
+      - go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+      - go install github.com/go-micro/generator/cmd/protoc-gen-micro@latest
+      - curl -L "https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip" --output protoc-21.9-linux-x86_64.zip
+      - unzip protoc-21.9-linux-x86_64.zip -d protoc/
+      - ./protoc/bin/protoc --go_opt=paths=source_relative --micro_opt=paths=source_relative --proto_path=./proto/ --micro_out=./proto/ --go_out=./proto/ ./proto/greeter.proto
+      - go build -race -ldflags "-extldflags '-static'" -o $CI_PROJECT_DIR/service
+    artifacts:
+      paths:
+        - service
+
+deploy:
+    stage: deploy
+    rules:
+      - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+    script: echo "Define your deployment script!"
+    environment: production

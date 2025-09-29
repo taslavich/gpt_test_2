@@ -1,0 +1,58 @@
+syntax = "proto3";
+package dspRouter;
+option go_package = "gitlab.com/twinbid-exchange/RTB-exchange/internal/grpc/proto/services/dspRouter;dspRouterGrpc";
+
+import "types/ortb_V2_4/ortb.proto";
+import "types/ortb_V2_5/ortb.proto";
+
+service DspRouterService {
+    rpc GetBids_V2_4(DspRouterRequest_V2_4) returns (DspRouterResponse_V2_4);
+    rpc GetRules_V2_4(GetRulesRequest) returns (JsonResponse);
+    rpc GetDSPRules_V2_4(GetRulesRequest) returns (JsonResponse);
+    rpc GetSPPRules_V2_4(GetRulesRequest) returns (JsonResponse);
+    rpc UpdateRules_V2_4(JsonRequest) returns (UpdateRulesResponse);
+    rpc UpdateDSPRules_V2_4(JsonRequest) returns (UpdateRulesResponse);
+    rpc UpdateSPPRules_V2_4(JsonRequest) returns (UpdateRulesResponse);
+
+    rpc GetBids_V2_5(DspRouterRequest_V2_5) returns (DspRouterResponse_V2_5);
+}
+
+message DspRouterRequest_V2_4 {
+  ortb_V2_4.BidRequest bidRequest = 1;
+  string sppEndpoint = 2;
+  string globalId = 3;
+}
+
+message DspRouterResponse_V2_4 {
+  ortb_V2_4.BidRequest bidRequest = 1;
+  repeated ortb_V2_4.BidResponse bidResponses = 2;
+  string globalId = 3;
+}
+
+message DspRouterRequest_V2_5 {
+  ortb_V2_5.BidRequest bidRequest = 1;
+  string sppEndpoint = 2;
+  string globalId = 3;
+}
+
+message DspRouterResponse_V2_5 {
+  ortb_V2_5.BidRequest bidRequest = 1;
+  repeated ortb_V2_5.BidResponse bidResponses = 2;
+  string globalId = 3;
+}
+
+message GetRulesRequest {}
+
+
+message UpdateRulesResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message JsonRequest {
+    bytes json_data = 1;  
+}
+
+message JsonResponse {
+    bytes json_data = 1;  
+}

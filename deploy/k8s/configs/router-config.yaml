@@ -1,0 +1,22 @@
+# deploy/k8s/configs/router-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: router-config
+  namespace: exchange
+data:
+  HOSTNAME: "0.0.0.0"
+  PORT: "8082"
+
+  DSP_RULES_CONFIG_PATH: "/dsp-rules.json"
+  SPP_RULES_CONFIG_PATH: "/spp-rules.json"
+
+  BID_RESPONSES_TIMEOUT: "10s"
+
+  DSP_ENDPOINTS_V_2_4: |
+    http://dsp1.example.com:http\://dsp1.example.com/doBidReq
+    http://dsp2.example.com:http\://dsp2.example.com/doBidReq2
+   
+  SPP_ENDPOINTS_V_2_4: |
+    http://spp1.example.com
+    http://spp2.example.com

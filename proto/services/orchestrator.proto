@@ -1,0 +1,33 @@
+syntax = "proto3";
+package orchestrator;
+option go_package = "gitlab.com/twinbid-exchange/RTB-exchange/internal/grpc/proto/services/orchestrator;orchestratorGrpc";
+
+import "types/ortb_V2_4/ortb.proto";
+import "types/ortb_V2_5/ortb.proto";
+
+service OrchestratorService {
+  rpc getWinnerBid_V2_4(OrchestratorRequest_V2_4) returns (OrchestratorResponse_V2_4) {}
+  rpc getWinnerBid_V2_5(OrchestratorRequest_V2_5) returns (OrchestratorResponse_V2_5) {}
+}
+
+message OrchestratorRequest_V2_4 {
+  ortb_V2_4.BidRequest bidRequest = 1;
+  string sppEndpoint = 2;
+  string globalId = 3;
+}
+
+message OrchestratorResponse_V2_4 {
+  ortb_V2_4.BidResponse bidResponse = 1;
+  string globalId = 3;
+}
+
+message OrchestratorRequest_V2_5 {
+  ortb_V2_5.BidRequest bidRequest = 1;
+  string sppEndpoint = 2;
+  string globalId = 3;
+}
+
+message OrchestratorResponse_V2_5 {
+  ortb_V2_5.BidResponse bidResponse = 1;
+  string globalId = 3;
+}

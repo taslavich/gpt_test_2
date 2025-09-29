@@ -1,0 +1,11 @@
+# deploy/k8s/configs/bidengine-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bid-engine-config
+  namespace: exchange
+data:
+  HOSTNAME: "0.0.0.0"
+  PORT: "8080"
+  PROFIT_PERCENT: "0.2"
+  SYSTEM_HOSTNAME: "bid-engine-service"

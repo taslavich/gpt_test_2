@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spp-adapter-deployment
+  namespace: exchange
+  labels:
+    app: spp-adapter
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spp-adapter
+  template:
+    metadata:
+      labels:
+        app: spp-adapter
+        tier: backend
+    spec:
+      containers:
+      - name: spp-adapter
+        image: localhost:5000/exchange/spp-adapter:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8083
+        envFrom:
+        - configMapRef:
+            name: spp-adapter-config
+        - configMapRef:
+            name: redis-config
+        - secretRef:
+            name: redis-auth
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "150m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"

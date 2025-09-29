@@ -1,0 +1,17 @@
+# deploy/k8s/configs/sppadapter-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spp-adapter-config
+  namespace: exchange
+data:
+  HOSTNAME: "0.0.0.0"
+  PORT: "8083"
+
+  NURL_TIMEOUT: "5s"
+  BURL_TIMEOUT: "5s"
+  GET_WINNER_BID_TIMEOUT: "10s"
+
+  GEO_IP_DB_PATH: "/GeoIP2_City.mmdb"
+
+  URI_OF_ORCHESTRATOR: "orchestrator-service:8081"

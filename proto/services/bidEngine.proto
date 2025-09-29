@@ -1,0 +1,33 @@
+syntax = "proto3";
+package bidEngine;
+option go_package = "gitlab.com/twinbid-exchange/RTB-exchange/internal/grpc/proto/services/bidEngine;bidEngineGrpc";
+
+import "types/ortb_V2_4/ortb.proto";
+import "types/ortb_V2_5/ortb.proto";
+
+service BidEngineService {
+  rpc getWinnerBid_V2_4(BidEngineRequest_V2_4) returns (BidEngineResponse_V2_4) {}
+  rpc getWinnerBid_V2_5(BidEngineRequest_V2_5) returns (BidEngineResponse_V2_5) {}
+}
+
+message BidEngineRequest_V2_4 {
+  ortb_V2_4.BidRequest bidRequest = 1;
+  repeated ortb_V2_4.BidResponse bidResponses = 2;
+  string globalId = 3;
+}
+
+message BidEngineResponse_V2_4 {
+  ortb_V2_4.BidResponse bidResponse = 1;
+  string globalId = 2;
+}
+
+message BidEngineRequest_V2_5 {
+  ortb_V2_5.BidRequest bidRequest = 1;
+  repeated ortb_V2_5.BidResponse bidResponses = 2;
+  string globalId = 3;
+}
+
+message BidEngineResponse_V2_5 {
+  ortb_V2_5.BidResponse bidResponse = 1;
+  string globalId = 2;
+}

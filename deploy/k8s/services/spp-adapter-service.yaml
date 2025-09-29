@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spp-adapter-service
+  namespace: exchange
+spec:
+  selector:
+    app: spp-adapter
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8083
+      targetPort: 8083
+  type: ClusterIP

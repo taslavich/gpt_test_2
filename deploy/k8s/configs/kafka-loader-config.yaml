@@ -1,0 +1,17 @@
+# deploy/k8s/configs/kafka-loader-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-loader-config
+  namespace: exchange
+data:
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_PASSWORD: ""
+  
+  KAFKA_BROKERS: "kafka-service:9092"
+  KAFKA_TOPIC: "rtb-events"
+  
+  BATCH_SIZE: "1000"
+  FLUSH_INTERVAL_SEC: "10"

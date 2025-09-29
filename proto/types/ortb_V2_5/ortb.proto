@@ -1,0 +1,53 @@
+syntax = "proto3";
+package ortb_V2_5;
+option go_package = "gitlab.com/twinbid-exchange/RTB-exchange/internal/grpc/proto/types/ortb_V2_5;ortb_V2_5";
+
+message BidRequest {
+    optional string id = 1;
+    optional int32 at = 2;
+    repeated Imp imp = 3;
+    optional Device device = 4;
+}
+
+message Imp {
+    optional string id = 1;
+    optional float bidFloor = 2;
+    optional Banner banner = 3;
+    optional Native native = 4;
+}
+
+message Native {
+    optional string request = 1;
+}
+
+message Banner {
+    optional int32 w = 1;
+    optional int32 h = 2;
+}
+  
+message Device {
+    optional string ip = 1;
+    optional Geo geo = 2;
+}
+
+message Geo {
+    optional string country = 1;
+}
+
+message SeatBid {
+    repeated Bid bid = 1;
+}
+
+message Bid {
+    optional string id = 1;
+    optional string impid = 2;
+    optional float price = 3;
+    optional string adid = 4;
+    optional string nurl = 5;
+    optional string burl = 6; 
+}
+
+message BidResponse {
+    optional string id = 1;
+    optional SeatBid seatbid = 2;
+}

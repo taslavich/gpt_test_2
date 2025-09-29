@@ -1,0 +1,14 @@
+# deploy/k8s/configs/orchestrator-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orchestrator-config
+  namespace: exchange
+data:
+  HOSTNAME: "0.0.0.0"
+  PORT: "8081"
+  AUCTION_TIMEOUT: "30s"
+  GET_BIDS_TIMEOUT: "15s"
+
+  URI_OF_BID_ENGINE: "bid-engine-service:8080"
+  URI_OF_DSP_ROUTER: "router-service:8082"

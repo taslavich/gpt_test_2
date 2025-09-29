@@ -1,0 +1,9 @@
+protoc \
+  -I=proto \
+  --go_opt=module=gitlab.com/twinbid-exchange/RTB-exchange/internal/grpc \
+  --go-grpc_opt=module=gitlab.com/twinbid-exchange/RTB-exchange/internal/grpc \
+  --go_out=./internal/grpc \
+  --go-grpc_out=./internal/grpc \
+  proto/services/*.proto \
+  proto/types/ortb_V2_4/*.proto \
+  proto/types/ortb_V2_5/*.proto
