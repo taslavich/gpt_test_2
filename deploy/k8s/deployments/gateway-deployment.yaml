@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-deployment
+  namespace: exchange
+  labels:
+    app: gateway
+    component: edge
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway
+      component: edge
+  template:
+    metadata:
+      labels:
+        app: gateway
+        component: edge
+    spec:
+      containers:
+        - name: nginx-gateway
+          image: nginx:1.25-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+            - name: bid-engine
+              containerPort: 8080
+            - name: orchestrator
+              containerPort: 8081
+            - name: router
+              containerPort: 8082
+            - name: spp-adapter
+              containerPort: 8083
+            - name: clickhouse-loader
+              containerPort: 8084
+            - name: kafka-loader
+              containerPort: 8085
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: gateway-config
+            items:
+              - key: nginx.conf
+                path: nginx.conf

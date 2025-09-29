@@ -1,4 +1,3 @@
-# deploy/k8s/kafka-loader-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,17 +14,21 @@ spec:
         app: kafka-loader
     spec:
       containers:
-      - name: kafka-loader
-        image: localhost:5000/exchange/kafka-loader:latest
-        ports:
-        - containerPort: 8085
-        envFrom:
-        - configMapRef:
-            name: kafka-loader-config
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
+        - name: kafka-loader
+          image: localhost:5000/exchange/kafka-loader:latest
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef:
+                name: kafka-loader-config
+            - configMapRef:
+                name: redis-config
+            - secretRef:
+                name: redis-auth
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
