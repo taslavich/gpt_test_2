@@ -18,22 +18,22 @@ spec:
         tier: backend
     spec:
       containers:
-      - name: bid-engine
-        image: localhost:5000/exchange/bid-engine:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: bid-engine-config
-        - configMapRef:
-            name: redis-config
-        - secretRef:
-            name: redis-auth
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "200m"
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
+        - name: bid-engine
+          image: localhost:5000/exchange/bid-engine:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: bid-engine-config
+            - configMapRef:
+                name: redis-config
+            - secretRef:
+                name: redis-auth
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

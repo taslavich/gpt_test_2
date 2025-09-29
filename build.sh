@@ -3,7 +3,7 @@ set -e
 
 REGISTRY="localhost:5000/exchange"
 TAG="latest"
-SERVICES=("bid-engine" "orchestrator" "router" "spp-adapter")
+SERVICES=("bid-engine" "orchestrator" "router" "spp-adapter" "kafka-loader" "clickhouse-loader")
 REGISTRY_CONTAINER="rtb-registry"
 
 echo "=== Building Docker Images ==="
@@ -12,7 +12,7 @@ usage() {
     echo "Usage: $0 [all|list|image-name|clean|clean-all|registry-start|registry-stop|registry-status|registry-clean|push-local]"
     echo "  all           - Build all images (default)"
     echo "  list          - List available services"
-    echo "  image-name    - Build specific image (e.g., bid_engine)"
+    echo "  image-name    - Build specific image (e.g., bid-engine)"
     echo "  clean         - Remove all RTB images from local Docker and registry"
     echo "  clean-all     - Remove ALL unused Docker images, containers, registry + k3s cache"
     echo "  registry-start- Start local Docker registry"

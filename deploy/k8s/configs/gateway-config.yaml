@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: exchange
+  labels:
+    app: gateway
+    component: edge
+    tier: frontend
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      include       /etc/nginx/mime.types;
+      default_type  application/octet-stream;
+
+      log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+
+      access_log  /var/log/nginx/access.log  main;
+
+      sendfile        on;
+      keepalive_timeout  65;
+      proxy_http_version 1.1;
+      proxy_set_header   Upgrade $http_upgrade;
+      proxy_set_header   Connection "upgrade";
+      proxy_set_header   Host $host;
+      proxy_set_header   X-Real-IP $remote_addr;
+      proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header   X-Forwarded-Proto $scheme;
+
+      upstream bid_engine {
+        server bid-engine-service.exchange.svc.cluster.local:8080;
+      }
+
+      upstream orchestrator {
+        server orchestrator-service.exchange.svc.cluster.local:8081;
+      }
+
+      upstream router {
+        server router-service.exchange.svc.cluster.local:8082;
+      }
+
+      upstream spp_adapter {
+        server spp-adapter-service.exchange.svc.cluster.local:8083;
+      }
+
+      upstream kafka_loader {
+        server kafka-loader-service.exchange.svc.cluster.local:8085;
+      }
+
+      upstream clickhouse_loader {
+        server clickhouse-loader-service.exchange.svc.cluster.local:8084;
+      }
+
+      server {
+        listen 80;
+        server_name _;
+
+        location = /healthz {
+          add_header Content-Type application/json;
+          return 200 '{"status":"ok"}';
+        }
+
+        location /bid-engine/ {
+          rewrite ^/bid-engine(/|$)(.*)$ /$2 break;
+          proxy_pass http://bid_engine;
+        }
+
+        location /orchestrator/ {
+          rewrite ^/orchestrator(/|$)(.*)$ /$2 break;
+          proxy_pass http://orchestrator;
+        }
+
+        location /router/ {
+          rewrite ^/router(/|$)(.*)$ /$2 break;
+          proxy_pass http://router;
+        }
+
+        location /spp-adapter/ {
+          rewrite ^/spp-adapter(/|$)(.*)$ /$2 break;
+          proxy_pass http://spp_adapter;
+        }
+
+        location /kafka-loader/ {
+          rewrite ^/kafka-loader(/|$)(.*)$ /$2 break;
+          proxy_pass http://kafka_loader;
+        }
+
+        location /clickhouse-loader/ {
+          rewrite ^/clickhouse-loader(/|$)(.*)$ /$2 break;
+          proxy_pass http://clickhouse_loader;
+        }
+
+        location / {
+          add_header Content-Type text/plain;
+          return 200 "RTB Exchange gateway is running";
+        }
+      }
+
+      server {
+        listen 8080;
+        server_name _;
+        location / {
+          proxy_pass http://bid_engine;
+        }
+      }
+
+      server {
+        listen 8081;
+        server_name _;
+        location / {
+          proxy_pass http://orchestrator;
+        }
+      }
+
+      server {
+        listen 8082;
+        server_name _;
+        location / {
+          proxy_pass http://router;
+        }
+      }
+
+      server {
+        listen 8083;
+        server_name _;
+        location / {
+          proxy_pass http://spp_adapter;
+        }
+      }
+
+      server {
+        listen 8084;
+        server_name _;
+        location / {
+          proxy_pass http://clickhouse_loader;
+        }
+      }
+
+      server {
+        listen 8085;
+        server_name _;
+        location / {
+          proxy_pass http://kafka_loader;
+        }
+      }
+    }
