@@ -338,13 +338,6 @@ deploy_services() {
         local service_file="$K8S_DIR/services/${service}-service.yaml"
         local deployment_name=${service}-deployment
 
-        if [ "$service" = "spp-adapter" ]; then
-            if ! ensure_geoip_secret; then
-                echo "❌ Cannot deploy spp-adapter without GeoIP database"
-                return 1
-            fi
-        fi
-
         if [ -f "$deployment_file" ]; then
             kubectl apply -f "$deployment_file"
         else
@@ -365,46 +358,6 @@ deploy_services() {
     echo "📊 Services status:"
     kubectl get pods -n "$NAMESPACE"
     echo "✅ Services deployed"
-}
-
-ensure_geoip_secret() {
-    if kubectl get secret geoip-db -n "$NAMESPACE" >/dev/null 2>&1; then
-        echo "✅ GeoIP secret already exists"
-        return 0
-    fi
-
-    local candidate
-    local candidates=(
-        "$SCRIPT_DIR/GeoIP2_City.mmdb"
-        "$SCRIPT_DIR/GeoLite2-City.mmdb"
-        "$ASSETS_DIR/GeoIP2_City.mmdb"
-        "$ASSETS_DIR/GeoLite2-City.mmdb"
-    )
-
-    for candidate in "${candidates[@]}"; do
-        if [ -f "$candidate" ]; then
-            echo "🔑 Creating geoip-db secret from $(basename "$candidate")..."
-            kubectl create secret generic geoip-db \
-                --namespace "$NAMESPACE" \
-                --from-file=GeoIP2_City.mmdb="$candidate" \
-                --dry-run=client -o yaml | kubectl apply -f -
-            echo "✅ GeoIP secret created"
-            return 0
-        fi
-    done
-
-    cat <<'EOF'
-⚠️ GeoIP database secret 'geoip-db' is missing.
-Положите файл GeoIP2_City.mmdb или GeoLite2-City.mmdb в корень репозитория рядом с deploy.sh (его можно хранить в git).
-
-Также допустимо использовать каталог deploy/assets, если нужно отделить артефакты.
-
-Создать секрет вручную можно командой:
-  kubectl create secret generic geoip-db -n exchange \
-    --from-file=GeoIP2_City.mmdb=/путь/к/GeoIP2_City.mmdb
-EOF
-
-    return 1
 }
 
 # Функция деплоя внешнего шлюза

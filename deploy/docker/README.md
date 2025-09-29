@@ -21,15 +21,10 @@
 
 ## GeoIP база для SPP Adapter
 
-Для работы `spp-adapter` требуется база GeoIP. Образ создаёт каталог `/data` и ожидает, что файл будет доступен по пути
-`/data/GeoIP2_City.mmdb`. Его можно:
+Для работы `spp-adapter` требуется база GeoIP. Во время сборки в образ копируется файл `GeoIP2_City.mmdb`
+из корня репозитория (или другой путь, переданный через build-аргумент `GEOIP_DB_FILE`). Внутри контейнера
+он располагается по адресу `/var/lib/geoip/GeoIP2_City.mmdb`, а переменная окружения `GEO_IP_DB_PATH`
+прописана в ConfigMap Kubernetes и по умолчанию указывает на этот путь.
 
-1. Подмонтировать при запуске контейнера:
-   ```bash
-   docker run -v /local/path/GeoIP2_City.mmdb:/data/GeoIP2_City.mmdb:ro \
-     -e GEO_IP_DB_PATH=/data/GeoIP2_City.mmdb \
-     localhost:5000/exchange/spp-adapter:latest
-   ```
-2. Загрузить в кластер Kubernetes как `Secret` с именем `geoip-db` (см. деплоймент `spp-adapter`).
-
-> ℹ️ Файл MaxMind можно хранить прямо в корне репозитория (например, `GeoIP2_City.mmdb`), чтобы сборка и деплой работали офлайн.
+> ℹ️ Убедитесь, что перед сборкой в корне проекта лежит актуальная база `GeoIP2_City.mmdb` (её можно хранить в git).
+> При необходимости можно указать другой файл: `docker build --build-arg GEOIP_DB_FILE=GeoLite2-City.mmdb ...`.

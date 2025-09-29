@@ -23,10 +23,6 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
-          volumeMounts:
-            - name: geoip-db
-              mountPath: /data
-              readOnly: true
           envFrom:
             - configMapRef:
                 name: spp-adapter-config
@@ -41,8 +37,3 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "300m"
-      volumes:
-        - name: geoip-db
-          secret:
-            secretName: geoip-db
-            optional: true
