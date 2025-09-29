@@ -413,6 +413,9 @@ check_status() {
     echo "=== StatefulSets ==="
     kubectl get statefulsets -n "$NAMESPACE" 2>/dev/null || echo "No statefulsets found"
     echo ""
+    echo "=== StatefulSets ==="
+    kubectl get statefulsets -n $NAMESPACE 2>/dev/null || echo "No statefulsets found"
+    echo ""
     echo "=== Ingress ==="
     kubectl get ingress -n "$NAMESPACE" 2>/dev/null || echo "No ingress found"
 }
