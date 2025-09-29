@@ -531,14 +531,12 @@ deploy_all() {
     deploy_redis
     deploy_kafka
     
-    # Спрашиваем про ClickHouse Cloud
-    echo ""
-    read -p "Configure ClickHouse Cloud? (y/n): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    # Настройка ClickHouse Cloud по запросу
+    if [[ "${CONFIGURE_CLICKHOUSE_CLOUD:-0}" == "1" ]]; then
+        echo "ℹ️ Auto-configuring ClickHouse Cloud from environment"
         setup_clickhouse_cloud
     else
-        echo "ℹ️ Skipping ClickHouse Cloud configuration"
+        echo "ℹ️ Skipping ClickHouse Cloud configuration (set CONFIGURE_CLICKHOUSE_CLOUD=1 to enable)"
     fi
     
     deploy_loaders

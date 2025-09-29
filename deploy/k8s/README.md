@@ -72,6 +72,8 @@ curl http://<domain>:8083/health   # прямой доступ к SPP adapter
 
 Скрипт автоматически применяет ConfigMap/Secret, ожидает readiness и выводит статус.
 
+> ℹ️ Значения подключения к ClickHouse Cloud для `clickhouse-loader` уже прописаны в ConfigMap `clickhouse-loader-config` и автоматически попадают в переменные окружения контейнера. При необходимости пересоздать Kubernetes Secret с учётными данными можно запустить `CONFIGURE_CLICKHOUSE_CLOUD=1 ./deploy.sh all` либо отдельную команду `./deploy.sh clickhouse`.
+
 ### GeoIP база для SPP Adapter
 
 `spp-adapter` требует файл `GeoIP2_City.mmdb`. Перед сборкой убедитесь, что база лежит в корне репозитория (или передана через

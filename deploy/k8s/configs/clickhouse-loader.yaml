@@ -12,6 +12,9 @@ data:
   CLICK_HOUSE_TABLE: "rtb_events"
   CLICKHOUSE_BATCH_SIZE: "1000"
   CLICKHOUSE_USERNAME: "default"
-  CLICKHOUSE_PASSWORD: ""
+  CLICKHOUSE_PASSWORD: "GbbL2d7.dd.hi"
+  CLICKHOUSE_DB: "rtb"
+  CLICKHOUSE_HOST: "hntzp0jsnf.europe-west4.gcp.clickhouse.cloud"
+  CLICKHOUSE_PORT: "9440"
 
   TIMEOUT_SEC: "30"
