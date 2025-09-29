@@ -107,6 +107,7 @@ data:
       }
 
       server {
+<<<<<<< codex-jvu87d
         listen 443 ssl http2;
         server_name _;
 
@@ -158,6 +159,8 @@ data:
       }
 
       server {
+=======
+>>>>>>> master
         listen 8080;
         server_name _;
         location / {
